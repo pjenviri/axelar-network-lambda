@@ -6,9 +6,6 @@ exports.handler = async (event, context, callback) => {
   // import module for submitting request.
   const axios = require('axios');
 
-  // import modules
-  const _ = require('lodash');
-
   /************************************************
    * Internal API information for requesting data
    * You can setup these environment variables below on the AWS Lambda function's configuration.
@@ -44,13 +41,6 @@ exports.handler = async (event, context, callback) => {
     if (path) {
       delete event.queryStringParameters.path;
     }
-
-    // generate url string
-    const generateUrl = (url, params, paramsFilterOut) => {
-      url = url || '/';
-
-      return [url, Object.entries({ ...params }).filter(([param, value]) => !(paramsFilterOut && paramsFilterOut.includes(param))).map(entry => entry.join('=')).join('&')].filter(urlPart => urlPart).join('?');
-    };
 
     // initial params parameter
     let params = null;
