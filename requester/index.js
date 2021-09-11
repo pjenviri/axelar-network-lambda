@@ -35,7 +35,7 @@ exports.handler = async (event, context, callback) => {
     // initial requester object
     const requester = axios.create({ baseURL: env[apiName].api_host });
 
-    const opensearcher = axios.create({ baseURL: env.opensearcher.api_host });    
+    const opensearcher = axios.create({ baseURL: env.opensearcher.api_host });
 
     // initial response object
     let res = null;
