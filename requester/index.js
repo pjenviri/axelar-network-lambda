@@ -17,6 +17,9 @@ exports.handler = async (event, context, callback) => {
     cosmos: {
       api_host: process.env.COSMOS_API_HOST || '{YOUR_COSMOS_API_HOST}',
     },
+    opensearcher: {
+      api_host: process.env.OPENSEARCHER_API_HOST || '{YOUR_OPENSEARCHER_API_HOST}',
+    },
   };
 
   // response data variable
@@ -31,6 +34,8 @@ exports.handler = async (event, context, callback) => {
 
     // initial requester object
     const requester = axios.create({ baseURL: env[apiName].api_host });
+
+    const opensearcher = axios.create({ baseURL: env.opensearcher.api_host });    
 
     // initial response object
     let res = null;
@@ -50,7 +55,7 @@ exports.handler = async (event, context, callback) => {
       case 'rpc':
         // normalize path parameter
         path = path || '';
-        // setup query string parameters including API key
+        // setup query string parameters
         params = { ...event.queryStringParameters };
 
         // send request
@@ -61,13 +66,20 @@ exports.handler = async (event, context, callback) => {
       case 'cosmos':
         // normalize path parameter
         path = path || '';
-        // setup query string parameters including API key
+        // setup query string parameters
         params = { ...event.queryStringParameters };
 
         // send request
         res = await requester.get(path, { params })
           // set response data from error handled by exception
           .catch(error => { return { data: { error } }; });
+
+        if (path.startsWith('/cosmos/tx/v1beta1/txs/') && !path.endsWith('/') && res && res.data && res.data.tx_response && res.data.tx_response.txhash) {
+          // send request
+          await opensearcher.post('', { ...res.data.tx_response, index: 'txs', method: 'update', id: res.data.tx_response.txhash })
+            // set response data from error handled by exception
+            .catch(error => { return { data: { error } }; });
+        }
         break;
       default: // do nothing
     }

@@ -46,10 +46,10 @@ exports.handler = async (event, context, callback) => {
     let res = null;
 
     // initial path parameter
-    let path = event.queryStringParameters.path;
-    // remove path parameter (if exist) before setup query string parameters
+    let path = _body.path;
+    // remove path parameter (if exist) before setup parameters
     if (path) {
-      delete event.queryStringParameters.path;
+      delete body.path;
     }
 
     // initial params parameter
@@ -59,13 +59,17 @@ exports.handler = async (event, context, callback) => {
     path = path || '';
 
     // setup query string parameters
+    if (!isNaN(body.height)) {
+      body.height = Number(body.height);
+    }
+
     params = { ...body };
 
     // do action
     switch(method) {
       case 'search':
         if (!path) {
-          path = `${index}/_search`;
+          path = `/${index}/_search`;
         }
         // send request
         res = await requester.post(path, body, { auth })
@@ -74,7 +78,7 @@ exports.handler = async (event, context, callback) => {
         break;
       case 'get':
         if (!path) {
-          path = `${index}/${id}`;
+          path = `/${index}/${id}`;
         }
         // send request
         res = await requester.get(path, { params, auth })
@@ -83,24 +87,29 @@ exports.handler = async (event, context, callback) => {
         break;
       case 'update':
         if (!path) {
-          path = `${index}/${id}`;
+          path = `/${index}/_doc/${id}`;
         }
-        // send request
-        res = await requester.post(path, body, { auth })
-          // set response data from error handled by exception
-          .catch(async error => {
-            if (!path.endsWith('/_update')) {
-              path = `${path}/_update`;
+        if (body) {
+          // send request
+          res = await requester.put(path, body, { auth })
+            // set response data from error handled by exception
+            .catch(error => { return { data: { error } }; });
+
+          if (res && res.data && res.data.error) {
+            if (path) {
+              path = path.replace('_doc', '_update');
             }
+
             // send request
-            return await requester.post(path, body, { auth })
+            res = await requester.post(path, { doc: body }, { auth })
               // set response data from error handled by exception
               .catch(error => { return { data: { error } }; });
-          });
+          }
+        }
         break;
       case 'delete':
         if (!path) {
-          path = `${index}/${id}`;
+          path = `/${index}/${id}`;
         }
         // send request
         res = await requester.delete(path, { params, auth })
