@@ -63,6 +63,12 @@ exports.handler = async (event, context, callback) => {
       body.height = Number(body.height);
     }
 
+    if (body.sort) {
+      try {
+        body.sort = JSON.parse(body.sort);
+      } catch (err) {}
+    }
+
     params = { ...body };
 
     // do action
