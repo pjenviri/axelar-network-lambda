@@ -16,29 +16,45 @@ console.log(`ENV: ${JSON.stringify(env)}`);
 
 const requester = axios.create({ baseURL: env.requester.api_host });
 
-const ws = new WebSocket(`ws://${env.rpc.host}/websocket`);
+const connect = () => {
+  const ws = new WebSocket(`ws://${env.rpc.host}/websocket`);
 
-ws.on('open', () => {
-  console.log(`CONNECTED: ws://${env.rpc.host}/websocket`);
+  ws.on('open', () => {
+    console.log(`CONNECTED: ws://${env.rpc.host}/websocket`);
 
-  ws.send('{"jsonrpc":"2.0","method":"subscribe","id":"0","params":{"query":"tm.event=\'Tx\'"}}');
-});
+    ws.send('{"jsonrpc":"2.0","method":"subscribe","id":"0","params":{"query":"tm.event=\'Tx\'"}}');
+  });
 
-ws.on('message', async data => {
-  try {
-    data = JSON.parse(data.toString());
+  ws.on('close', e => {
+    console.log(`DISCONNECTED: ${e.reason}`);
 
-    if (data && data.result && data.result.events && data.result.events['tx.hash']) {
-      const txsHash = data.result.events['tx.hash'];
+    setTimeout(() => connect(), 1000);
+  });
 
-      for (let i = 0; i < txsHash.length; i++) {
-        const tx = txsHash[i];
+  ws.on('error', err => {
+    console.log(`ERROR: ${err.message}`);
 
-        console.log(`GET TX: ${tx}`);
+    ws.close();
+  });
 
-        const res = await requester.get('', { params: { api_name: 'cosmos', path: `/cosmos/tx/v1beta1/txs/${tx}` } })
-          .catch(error => { return { data: { error } }; });
+  ws.on('message', async data => {
+    try {
+      data = JSON.parse(data.toString());
+
+      if (data && data.result && data.result.events && data.result.events['tx.hash']) {
+        const txsHash = data.result.events['tx.hash'];
+
+        for (let i = 0; i < txsHash.length; i++) {
+          const tx = txsHash[i];
+
+          console.log(`GET TX: ${tx}`);
+
+          const res = await requester.get('', { params: { api_name: 'cosmos', path: `/cosmos/tx/v1beta1/txs/${tx}` } })
+            .catch(error => { return { data: { error } }; });
+        }
       }
-    }
-  } catch (err) {}
-});
+    } catch (err) {}
+  });
+}
+
+connect();
