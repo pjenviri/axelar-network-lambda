@@ -16,6 +16,8 @@ exports.handler = async (event, context, callback) => {
     password: process.env.OPENSEARCH_PASSWORD || '{YOUR_OPENSEARCH_PASSWORD}',
   };
 
+  const normalizeObject = object => Object.fromEntries(Object.entries(object).map(([key, value]) => [key, typeof value === 'object' ? normalizeObject(value) : !isNaN(value) ? Number(value) : value]));
+
   // response data variable
   let response = null;
 
@@ -65,7 +67,7 @@ exports.handler = async (event, context, callback) => {
 
     if (body.query) {
       try {
-        body.query = JSON.parse(body.query);
+        body.query = normalizeObject(JSON.parse(body.query));
       } catch (err) {}
     }
 
