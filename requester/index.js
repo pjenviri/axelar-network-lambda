@@ -80,6 +80,12 @@ exports.handler = async (event, context, callback) => {
             // set response data from error handled by exception
             .catch(error => { return { data: { error } }; });
         }
+        else if (path.startsWith('/cosmos/base/tendermint/v1beta1/blocks/') && !path.endsWith('/') && res && res.data && res.data.block && res.data.block.header && res.data.block.header.height) {
+          // send request
+          await opensearcher.post('', { ...res.data.block.header, hash: res.data.block_id && res.data.block_id.hash, txs: res.data.block.data && res.data.block.data.txs && res.data.block.data.txs.length, index: 'blocks', method: 'update', id: res.data.block.header.height })
+            // set response data from error handled by exception
+            .catch(error => { return { data: { error } }; });
+        }
         break;
       default: // do nothing
     }
