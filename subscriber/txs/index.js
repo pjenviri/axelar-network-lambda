@@ -1,4 +1,5 @@
 require('dotenv').config({path: __dirname + '/.env'});
+const { exec } = require('child_process');
 
 const WebSocket = require('ws');
 const axios = require('axios');
@@ -35,6 +36,10 @@ const connect = () => {
     console.log(`ERROR: ${err.message}`);
 
     ws.close();
+
+    if (err.message && err.message.startsWith('connect ECONNREFUSED')) {
+      exec('bash ~/txs/startAxelarCore.sh');
+    }
   });
 
   ws.on('message', async data => {
