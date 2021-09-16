@@ -92,7 +92,7 @@ exports.handler = async (event, context, callback) => {
         break;
       case 'get':
         if (!path) {
-          path = `/${index}/${id}`;
+          path = `/${index}/_doc/${id}`;
         }
         // send request
         res = await requester.get(path, { params, auth })
@@ -123,7 +123,7 @@ exports.handler = async (event, context, callback) => {
         break;
       case 'delete':
         if (!path) {
-          path = `/${index}/${id}`;
+          path = `/${index}/_doc/${id}`;
         }
         // send request
         res = await requester.delete(path, { params, auth })
