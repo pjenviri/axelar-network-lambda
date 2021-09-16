@@ -62,6 +62,10 @@ exports.handler = async (event, context, callback) => {
         res = await requester.get(path, { params })
           // set response data from error handled by exception
           .catch(error => { return { data: { results: null, error } }; });
+
+        if (path === '/status' && res && res.data && res.data.result && res.data.result.sync_info) {
+          res.data = res.data.result.sync_info;
+        }
         break;
       case 'cosmos':
         // normalize path parameter
