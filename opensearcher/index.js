@@ -70,7 +70,7 @@ exports.handler = async (event, context, callback) => {
     objectFields.forEach(objectField => {
       if (body[objectField]) {
         try {
-          body[objectField] = Array.isArray(body[objectField]) ? JSON.parse(body[objectField]) : normalizeObject(JSON.parse(body[objectField]));
+          body[objectField] = body[objectField] && body[objectField].startsWith('[') && body[objectField].endsWith(']') ? JSON.parse(body[objectField]) : normalizeObject(JSON.parse(body[objectField]));
         } catch (err) {}
       }
     });
