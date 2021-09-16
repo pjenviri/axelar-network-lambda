@@ -65,17 +65,15 @@ exports.handler = async (event, context, callback) => {
       body.height = Number(body.height);
     }
 
-    if (body.query) {
-      try {
-        body.query = normalizeObject(JSON.parse(body.query));
-      } catch (err) {}
-    }
+    const objectFields = ['aggs', 'query', 'sort'];
 
-    if (body.sort) {
-      try {
-        body.sort = JSON.parse(body.sort);
-      } catch (err) {}
-    }
+    objectFields.forEach(objectField => {
+      if (body[objectField]) {
+        try {
+          body[objectField] = normalizeObject(JSON.parse(body[objectField]));
+        } catch (err) {}
+      }
+    });
 
     params = { ...body };
 
