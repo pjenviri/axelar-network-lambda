@@ -85,6 +85,13 @@ exports.handler = async (event, context, callback) => {
           await opensearcher.post('', { ...res.data.block.header, hash: res.data.block_id && res.data.block_id.hash, txs: res.data.block.data && res.data.block.data.txs && res.data.block.data.txs.length, index: 'blocks', method: 'update', id: res.data.block.header.height })
             // set response data from error handled by exception
             .catch(error => { return { data: { error } }; });
+
+          if (res.data.block.last_commit && res.data.block.last_commit.height && res.data.block.last_commit.signatures) {
+            // send request
+            await opensearcher.post('', { ...res.data.block.last_commit, height: Number(res.data.block.last_commit.height), validators: res.data.block.last_commit.signatures.map(signature => signature.validator_address), index: 'uptimes', method: 'update', id: res.data.block.last_commit.height })
+              // set response data from error handled by exception
+              .catch(error => { return { data: { error } }; });
+          }
         }
         break;
       default: // do nothing
