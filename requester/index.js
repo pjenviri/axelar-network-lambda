@@ -66,8 +66,11 @@ exports.handler = async (event, context, callback) => {
           // set response data from error handled by exception
           .catch(error => { return { data: { results: null, error } }; });
 
-        if (path === '/status' && res && res.data && res.data.result && res.data.result.sync_info) {
+        if (path === '/status' && res && res.data && res.data.result) {
           res.data = res.data.result.sync_info;
+        }
+        else if (path === '/dump_consensus_state' && res && res.data && res.data.result) {
+          res.data = res.data.result.round_state;
         }
         break;
       case 'cosmos':
