@@ -20,6 +20,9 @@ exports.handler = async (event, context, callback) => {
     opensearcher: {
       api_host: process.env.OPENSEARCHER_API_HOST || '{YOUR_OPENSEARCHER_API_HOST}',
     },
+    coingecko: {
+      api_host: process.env.COINGECKO_API_HOST || 'https://api.coingecko.com/api/v3/',
+    },
   };
 
   // response data variable
@@ -97,6 +100,17 @@ exports.handler = async (event, context, callback) => {
               .catch(error => { return { data: { error } }; });
           }
         }
+        break;
+      case 'coingecko':
+        // normalize path parameter
+        path = path || '';
+        // setup query string parameters
+        params = { ...event.queryStringParameters };
+
+        // send request
+        res = await requester.get(path, { params })
+          // set response data from error handled by exception
+          .catch(error => { return { data: { error } }; });
         break;
       default: // do nothing
     }
