@@ -17,6 +17,9 @@ exports.handler = async (event, context, callback) => {
     cosmos: {
       api_host: process.env.COSMOS_API_HOST || '{YOUR_COSMOS_API_HOST}',
     },
+    executor: {
+      api_host: process.env.EXECUTOR_API_HOST || '{YOUR_EXECUTOR_API_HOST}',
+    },
     opensearcher: {
       api_host: process.env.OPENSEARCHER_API_HOST || '{YOUR_OPENSEARCHER_API_HOST}',
     },
@@ -103,6 +106,17 @@ exports.handler = async (event, context, callback) => {
               .catch(error => { return { data: { error } }; });
           }
         }
+        break;
+      case 'executor':
+        // normalize path parameter
+        path = path || '';
+        // setup query string parameters
+        params = { ...event.queryStringParameters };
+
+        // send request
+        res = await requester.get(path, { params })
+          // set response data from error handled by exception
+          .catch(error => { return { data: { error } }; });
         break;
       case 'coingecko':
         // normalize path parameter
