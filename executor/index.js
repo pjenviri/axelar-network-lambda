@@ -13,7 +13,7 @@ const execute = async (req, res) => {
 
   let data;
 
-  if (req.query && req.query.cmd) {
+  if (req.query && req.query.cmd && req.query.cmd.startsWith('axelard q ')) {
     const execCommand = `docker exec -i axelar-core ${req.query.cmd}`;
 
     console.log(`EXEC COMMAND: ${execCommand}`);
