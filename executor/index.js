@@ -18,7 +18,12 @@ const execute = async (req, res) => {
 
     console.log(`EXEC COMMAND: ${execCommand}`);
 
-    data = await exec(execCommand);
+    try {
+      data = await exec(execCommand);
+      data.stdout = data.stdout.trim();
+    } catch (error) {
+      data = error;
+    }
   }
   else {
     data = { error: 'command not found' };
