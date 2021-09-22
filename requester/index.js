@@ -6,6 +6,9 @@ exports.handler = async (event, context, callback) => {
   // import module for submitting request.
   const axios = require('axios');
 
+  // data
+  const data = require('./data');
+
   /************************************************
    * Internal API information for requesting data
    * You can setup these environment variables below on the AWS Lambda function's configuration.
@@ -26,6 +29,7 @@ exports.handler = async (event, context, callback) => {
     coingecko: {
       api_host: process.env.COINGECKO_API_HOST || 'https://api.coingecko.com/api/v3/',
     },
+    data: {},
   };
 
   // response data variable
@@ -129,6 +133,8 @@ exports.handler = async (event, context, callback) => {
           // set response data from error handled by exception
           .catch(error => { return { data: { error } }; });
         break;
+      case 'data':
+        res = { data: data[event.queryStringParameters.name] };
       default: // do nothing
     }
 
