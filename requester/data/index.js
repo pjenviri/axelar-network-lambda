@@ -4,7 +4,7 @@ const bridge_accounts = [
     name: 'Bitcoin',
     image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
     cmds: [
-      'axelard q bitcoin consolidation-address --key-id btc-master-genesis',
+      'axelard q bitcoin consolidation-address --key-role master',
     ],
   },
   {
