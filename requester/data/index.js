@@ -1,13 +1,15 @@
 const bridge_accounts = [
   {
-    id: 'bitcoin',
+    id: 'btc',
+    name: 'Bitcoin',
     image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
     cmds: [
       'axelard q bitcoin consolidation-address --key-id btc-master-genesis',
     ],
   },
   {
-    id: 'ethereum',
+    id: 'eth',
+    name: 'Ethereum',
     image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
     cmds: [
       'axelard q evm gateway-address ethereum',
@@ -15,7 +17,8 @@ const bridge_accounts = [
     ],
   },
   {
-    id: 'satoshi',
+    id: 'sats',
+    name: 'Satoshi',
     image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
     cmds: [
       'axelard q evm token-address ethereum satoshi',
