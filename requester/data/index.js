@@ -5,6 +5,7 @@ const bridge_accounts = [
     image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
     cmds: [
       'axelard q bitcoin consolidation-address --key-role master',
+      'axelard q bitcoin consolidation-address --key-role secondary',
     ],
   },
   {
@@ -14,6 +15,7 @@ const bridge_accounts = [
     cmds: [
       'axelard q evm gateway-address ethereum',
       'axelard q evm address ethereum --key-role master',
+      'axelard q evm address ethereum --key-role secondary',
     ],
   },
   {
