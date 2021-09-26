@@ -44,6 +44,9 @@ const bridge_accounts = [
 const keygens = [
   'btc-master-genesis',
   'btc-secondary-genesis',
+  'btc-master-1',
+  'btc-master-2',
+  'btc-secondary-1',
   'eth-master-genesis',
   'eth-secondary-genesis',
 ];
