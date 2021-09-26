@@ -125,10 +125,12 @@ exports.handler = async (event, context, callback) => {
         // setup query string parameters
         params = { ...event.queryStringParameters };
 
+        let resCache;
+
         // get
         if (cache && params.cmd) {
           // send request
-          const resCache = await opensearcher.post('', { index: 'axelard', method: 'get', id: params.cmd })
+          resCache = await opensearcher.post('', { index: 'axelard', method: 'get', id: params.cmd })
             // set response data from error handled by exception
             .catch(error => { return { data: { error } }; });
 
@@ -143,12 +145,17 @@ exports.handler = async (event, context, callback) => {
           // set response data from error handled by exception
           .catch(error => { return { data: { error } }; });
 
-        // update
-        if (cache && params.cmd) {
-          // send request
-          await opensearcher.post('', { ...res.data, updated_at: moment().unix(), index: 'axelard', method: 'update', id: params.cmd })
-            // set response data from error handled by exception
-            .catch(error => { return { data: { error } }; });
+        if (res && res.data && res.data.data && res.data.data.stdout) {
+          // update
+          if (cache && params.cmd) {
+            // send request
+            await opensearcher.post('', { ...res.data, updated_at: moment().unix(), index: 'axelard', method: 'update', id: params.cmd })
+              // set response data from error handled by exception
+              .catch(error => { return { data: { error } }; });
+          }
+        }
+        else if (resCache) {
+          res = { data: { ...resCache.data._source } };
         }
         break;
       case 'coingecko':
