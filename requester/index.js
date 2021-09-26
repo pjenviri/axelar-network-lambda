@@ -7,6 +7,7 @@ exports.handler = async (event, context, callback) => {
   const axios = require('axios');
 
   // import modules
+  const _ = require('lodash');
   const moment = require('moment');
 
   // data
