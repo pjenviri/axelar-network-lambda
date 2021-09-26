@@ -100,6 +100,16 @@ exports.handler = async (event, context, callback) => {
           .catch(error => { return { data: { error } }; });
 
         if (path.startsWith('/cosmos/tx/v1beta1/txs/') && !path.endsWith('/') && res && res.data && res.data.tx_response && res.data.tx_response.txhash) {
+          if (res.data.tx_response.logs && res.data.tx_response.logs.findIndex(log => log.events && log.events.findIndex(event => event.type === 'keygen') > -1) > -1) {
+            const log = res.data.tx_response.logs[res.data.tx_response.logs.findIndex(log => log.events && log.events.findIndex(event => event.type === 'keygen') > -1)];
+            const event = log.events[log.events.findIndex(event => event.type === 'keygen')];
+            const sessionID = event.attributes && _.head(event.attributes.filter(attr => attr.key === 'sessionID').map(attr => attr.value));
+
+            if (sessionID) {
+              res.data.tx_response.keygen = sessionID;
+            }
+          }
+
           // send request
           await opensearcher.post('', { ...res.data.tx_response, index: 'txs', method: 'update', id: res.data.tx_response.txhash })
             // set response data from error handled by exception
