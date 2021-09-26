@@ -41,4 +41,11 @@ const bridge_accounts = [
   },
 ];
 
-module.exports = { bridge_accounts };
+const keygens = [
+  'btc-master-genesis',
+  'btc-secondary-genesis',
+  'eth-master-genesis',
+  'eth-secondary-genesis',
+];
+
+module.exports = { bridge_accounts, keygens };
