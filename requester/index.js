@@ -6,6 +6,9 @@ exports.handler = async (event, context, callback) => {
   // import module for submitting request.
   const axios = require('axios');
 
+  // import modules
+  const moment = require('moment');
+
   // data
   const data = require('./data');
 
@@ -41,6 +44,11 @@ exports.handler = async (event, context, callback) => {
     const apiName = event.queryStringParameters.api_name.trim().toLowerCase();
     // remove api_name parameter before setup query string parameters
     delete event.queryStringParameters.api_name;
+
+    // normalize cache parameter
+    const cache = event.queryStringParameters.cache && event.queryStringParameters.cache.trim().toLowerCase() === 'true' ? true : false;
+    // remove cache parameter before setup query string parameters
+    delete event.queryStringParameters.cache;
 
     // initial requester object
     const requester = axios.create({ baseURL: env[apiName].api_host });
@@ -117,10 +125,31 @@ exports.handler = async (event, context, callback) => {
         // setup query string parameters
         params = { ...event.queryStringParameters };
 
+        // get
+        if (cache && params.cmd) {
+          // send request
+          const resCache = await opensearcher.post('', { index: 'axelard', method: 'get', id: params.cmd })
+            // set response data from error handled by exception
+            .catch(error => { return { data: { error } }; });
+
+          if (resCache.data && resCache.data._source && moment().diff(moment(resCache.data._source.updated_at * 1000), 'minutes', true) <= 5) {
+            res = { data: { ...resCache.data._source } };
+            break;
+          }
+        }
+
         // send request
         res = await requester.get(path, { params })
           // set response data from error handled by exception
           .catch(error => { return { data: { error } }; });
+
+        // update
+        if (cache && params.cmd) {
+          // send request
+          await opensearcher.post('', { ...res.data, updated_at: moment().unix(), index: 'axelard', method: 'update', id: params.cmd })
+            // set response data from error handled by exception
+            .catch(error => { return { data: { error } }; });
+        }
         break;
       case 'coingecko':
         // normalize path parameter
