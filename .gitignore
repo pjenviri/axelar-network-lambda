@@ -12,6 +12,7 @@ node_modules
 build
 
 # misc
+/executor/upload.sh
 /subscriber/*/upload.sh
 .DS_Store
 .env.local
