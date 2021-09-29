@@ -13,19 +13,29 @@ exports.handler = async (event, context, callback) => {
   // data
   const data = require('./data');
 
+  // random
+  const rand = (initial = 0, variation = 100) => initial + Math.ceil(Math.random(0, 1) * variation);
+
+  // random host
+  const randHost = host => {
+    host = host && host.split(',');
+    host = host && host[rand(0, host.length) % host.length];
+    return host;
+  };
+
   /************************************************
    * Internal API information for requesting data
    * You can setup these environment variables below on the AWS Lambda function's configuration.
    ************************************************/
   const env = {
     rpc: {
-      api_host: process.env.RPC_API_HOST || '{YOUR_RPC_API_HOST}',
+      api_host: randHost(process.env.RPC_API_HOST) || '{YOUR_RPC_API_HOST}',
     },
     cosmos: {
-      api_host: process.env.COSMOS_API_HOST || '{YOUR_COSMOS_API_HOST}',
+      api_host: randHost(process.env.COSMOS_API_HOST) || '{YOUR_COSMOS_API_HOST}',
     },
     executor: {
-      api_host: process.env.EXECUTOR_API_HOST || '{YOUR_EXECUTOR_API_HOST}',
+      api_host: randHost(process.env.EXECUTOR_API_HOST) || '{YOUR_EXECUTOR_API_HOST}',
     },
     opensearcher: {
       api_host: process.env.OPENSEARCHER_API_HOST || '{YOUR_OPENSEARCHER_API_HOST}',
