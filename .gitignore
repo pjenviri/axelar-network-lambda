@@ -13,6 +13,7 @@ build
 
 # misc
 /executor/upload.sh
+/query-node/upload.sh
 /subscriber/*/upload.sh
 .DS_Store
 .env.local
