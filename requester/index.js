@@ -17,16 +17,25 @@ exports.handler = async (event, context, callback) => {
   const rand = (initial = 0, variation = 100) => initial + Math.ceil(Math.random(0, 1) * variation);
 
   // random host
-  const randHost = host => {
+  const randHost = (host, withIndex) => {
     host = host && host.split(',');
-    host = host && host[rand(0, host.length) % host.length];
-    return host;
+
+    const index = host ? rand(0, host.length) % host.length : -1;
+
+    host = index > -1 ? host[index] : host;
+
+    return withIndex && host ? [host, index] : host;
   };
+
+  // number list
+  const numbersList = numbers => (numbers && numbers.split(',').map(number => Number(number))) || [];
 
   /************************************************
    * Internal API information for requesting data
    * You can setup these environment variables below on the AWS Lambda function's configuration.
    ************************************************/
+  const prometheus = randHost(process.env.PROMETHEUS_API_HOST, true);
+
   const env = {
     rpc: {
       api_host: randHost(process.env.RPC_API_HOST) || '{YOUR_RPC_API_HOST}',
@@ -38,7 +47,8 @@ exports.handler = async (event, context, callback) => {
       api_host: randHost(process.env.EXECUTOR_API_HOST) || '{YOUR_EXECUTOR_API_HOST}',
     },
     prometheus: {
-      api_host: randHost(process.env.PROMETHEUS_API_HOST) || '{YOUR_PROMETHEUS_API_HOST}',
+      api_host: (prometheus && prometheus[0]) || '{YOUR_PROMETHEUS_API_HOST}',
+      threshold_time: prometheus && prometheus[0] && numbersList(process.env.PROMETHEUS_THRESHOLD_TIME)[prometheus[1]],
     },
     opensearcher: {
       api_host: process.env.OPENSEARCHER_API_HOST || '{YOUR_OPENSEARCHER_API_HOST}',
@@ -192,6 +202,17 @@ exports.handler = async (event, context, callback) => {
         res = await requester.get(path, { params })
           // set response data from error handled by exception
           .catch(error => { return { data: { status: 'error', error } }; });
+
+        if (res && res.data && res.data.data && res.data.data.result && res.data.data.result.length < 1) {
+          if (params.query && params.query.includes('_threshold') && env[apiName].threshold_time) {
+            params = { ...params, time: env[apiName].threshold_time };
+
+            // send request
+            res = await requester.get(path, { params })
+              // set response data from error handled by exception
+              .catch(error => { return { data: { status: 'error', error } }; });
+          }
+        }
         break;
       case 'coingecko':
         // normalize path parameter
