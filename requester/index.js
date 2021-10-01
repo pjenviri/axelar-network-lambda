@@ -233,6 +233,11 @@ exports.handler = async (event, context, callback) => {
     // set response data
     if (res && res.data) {
       response = res.data;
+
+      // remove error config
+      if (response.error && response.error.config) {
+        delete response.error.config;
+      }
     }
   }
 
