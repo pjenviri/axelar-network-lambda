@@ -15,6 +15,7 @@ build
 /executor/upload.sh
 /query-node/upload.sh
 /subscriber/*/upload.sh
+/subscriber/*/.env
 .DS_Store
 .env.local
 .env.development.local
