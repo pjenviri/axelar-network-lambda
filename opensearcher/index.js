@@ -109,7 +109,7 @@ exports.handler = async (event, context, callback) => {
 
           if (res && res.data && res.data.error) {
             if (path) {
-              path = path.replace('_doc', '_update');
+              path = path.replace(path.includes('_doc') ? '_doc' : '_update', path.includes('_update') ? '_update' : '_doc');
             }
 
             // send request
