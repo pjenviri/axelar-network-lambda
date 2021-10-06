@@ -300,7 +300,7 @@ const saving = async (data, index, update) => {
 
         if (res && res.data && res.data.data && res.data.data.stdout) {
           try {
-            let validators = JSON.parse(res.data.data.stdout.split('\\n').join('').split('  ').join(' ')).validators;
+            let validators = JSON.parse(res.data.data.stdout).validators;
             validators = validators.filter(validator => data.snapshot_validators.validators.findIndex(_validator => _validator.validator === validator.operator_address) < 0).map(validator => { return { ...validator, validator: validator.operator_address } });
 
             data.snapshot_non_participant_validators = { validators };
@@ -315,7 +315,7 @@ const saving = async (data, index, update) => {
 
       if (res && res.data && res.data.data && res.data.data.stdout) {
         try {
-          let validators = JSON.parse(res.data.data.stdout.split('\\n').join('').split('  ').join(' ')).validators;
+          let validators = JSON.parse(res.data.data.stdout).validators;
           validators = validators.filter(validator => data.participants.findIndex(_validator => _validator === validator.operator_address) < 0).map(validator => validator.operator_address);
 
           data.non_participants = validators;
