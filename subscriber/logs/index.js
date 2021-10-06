@@ -134,9 +134,37 @@ logStream.on('data', async chunk => {
         pattern_end: ' sigID=',
         type: 'array',
       },
+      {
+        id: 'result',
+        hard_value: false,
+      },
     ];
 
     console.log('EVENT: attempted to start signing');
+
+    await indexing(data, attributes, 'sign_attempts', true);
+  }
+  else if (data.includes('signature for ') && data.includes(' verified: ')) {
+    const attributes = [
+      {
+        id: 'timestamp',
+        pattern_start: '',
+        pattern_end: ' ',
+        type: 'date',
+      },
+      {
+        id: 'sig_id',
+        primary_key: true,
+        pattern_start: 'signature for ',
+        pattern_end: ' verified: ',
+      },
+      {
+        id: 'result',
+        hard_value: true,
+      },
+    ];
+
+    console.log('EVENT: signature verified');
 
     await indexing(data, attributes, 'sign_attempts', true);
   }
@@ -215,24 +243,29 @@ const mergeData = (_data, attributes, initialData) => {
   if (_data && attributes) {
     attributes.forEach(attribute => {
       try {
-      const from = _data.indexOf(attribute.pattern_start) + attribute.pattern_start.length;
-      const to = typeof attribute.pattern_end === 'string' && _data.indexOf(attribute.pattern_end) > -1 ? _data.indexOf(attribute.pattern_end) : _data.length;
+        const from = attribute.pattern_start ? _data.indexOf(attribute.pattern_start) + attribute.pattern_start.length : 0;
+        const to = typeof attribute.pattern_end === 'string' && _data.indexOf(attribute.pattern_end) > -1 ? _data.indexOf(attribute.pattern_end) : _data.length;
 
-      data[attribute.id] = _data.substring(from, to);
-      data[attribute.id] = data[attribute.id].trim();
-      data[attribute.id] = attribute.type === 'date' ?
-        Number(moment(data[attribute.id]).format('X'))
-        :
-        attribute.type === 'number' ?
-          Number(data[attribute.id])
-          :
-          attribute.type && attribute.type.startsWith('array') ?
-            data[attribute.id].replace('[', '').replace(']', '').split(',').map(element => element && element.split('"').join('').split('\\').join('').trim()).filter(element => element).map(element => attribute.type.includes('number') ? Number(element) : element)
+        if ('hard_value' in attribute) {
+          data[attribute.id] = attribute.hard_value;
+        }
+        else {
+          data[attribute.id] = _data.substring(from, to);
+          data[attribute.id] = data[attribute.id].trim();
+          data[attribute.id] = attribute.type === 'date' ?
+            Number(moment(data[attribute.id]).format('X'))
             :
-            attribute.type === 'json' ?
-              JSON.parse(data[attribute.id])
+            attribute.type === 'number' ?
+              Number(data[attribute.id])
               :
-              data[attribute.id];
+              attribute.type && attribute.type.startsWith('array') ?
+                data[attribute.id].replace('[', '').replace(']', '').split(',').map(element => element && element.split('"').join('').split('\\').join('').trim()).filter(element => element).map(element => attribute.type.includes('number') ? Number(element) : element)
+                :
+                attribute.type === 'json' ?
+                  JSON.parse(data[attribute.id])
+                  :
+                  data[attribute.id];
+        }
       } catch (error) {}
     });
   }
