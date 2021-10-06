@@ -27,12 +27,45 @@ const container = new Docker().getContainer('axelar-core');
 
 const logStream = new stream.PassThrough();
 
+let app_message;
 let keygen;
 
 logStream.on('data', async chunk => {
   const data = chunk.toString('utf8').replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').trim();
 
-  if (data.includes('scheduling signing for sig ID')) {
+  if (data.includes('app_message')) {
+    const attributes = [
+      {
+        id: 'data0',
+        pattern_start: '',
+        pattern_end: null,
+      },
+    ];
+
+    app_message = mergeData(data, attributes, {});
+  }
+  else if (data.includes('","node_id":"')) {
+    const attributes = [
+      {
+        id: 'data1',
+        pattern_start: '',
+        pattern_end: null,
+      },
+    ];
+
+    app_message = mergeData(data, attributes, app_message);
+
+    if (app_message && app_message.data0 && app_message.data1) {
+      try {
+        console.log('EVENT: app_message');
+
+        await saving({ ...(JSON.parse(`${app_message.data0}${app_message.data1}`).app_message), id: 'app_message' }, 'constants');
+
+        app_message = {};
+      } catch (error) {}
+    }
+  }
+  else if (data.includes('scheduling signing for sig ID')) {
     const attributes = [
       {
         id: 'timestamp',
@@ -181,8 +214,9 @@ const mergeData = (_data, attributes, initialData) => {
 
   if (_data && attributes) {
     attributes.forEach(attribute => {
+      try {
       const from = _data.indexOf(attribute.pattern_start) + attribute.pattern_start.length;
-      const to = _data.indexOf(attribute.pattern_end) > -1 ? _data.indexOf(attribute.pattern_end) : _data.length;
+      const to = typeof attribute.pattern_end === 'string' && _data.indexOf(attribute.pattern_end) > -1 ? _data.indexOf(attribute.pattern_end) : _data.length;
 
       data[attribute.id] = _data.substring(from, to);
       data[attribute.id] = data[attribute.id].trim();
@@ -195,7 +229,11 @@ const mergeData = (_data, attributes, initialData) => {
           attribute.type && attribute.type.startsWith('array') ?
             data[attribute.id].replace('[', '').replace(']', '').split(',').map(element => element && element.split('"').join('').split('\\').join('').trim()).filter(element => element).map(element => attribute.type.includes('number') ? Number(element) : element)
             :
-            data[attribute.id];
+            attribute.type === 'json' ?
+              JSON.parse(data[attribute.id])
+              :
+              data[attribute.id];
+      } catch (error) {}
     });
   }
 
@@ -235,25 +273,7 @@ const saving = async (data, index, update) => {
 
 const indexing = async (_data, attributes, index, update) => {
   if (_data && attributes) {
-    const data = {};
-
-    attributes.forEach(attribute => {
-      const from = _data.indexOf(attribute.pattern_start) + attribute.pattern_start.length;
-      const to = _data.indexOf(attribute.pattern_end) > -1 ? _data.indexOf(attribute.pattern_end) : _data.length;
-
-      data[attribute.id] = _data.substring(from, to);
-      data[attribute.id] = data[attribute.id].trim();
-      data[attribute.id] = attribute.type === 'date' ?
-        Number(moment(data[attribute.id]).format('X'))
-        :
-        attribute.type === 'number' ?
-          Number(data[attribute.id])
-          :
-          attribute.type && attribute.type.startsWith('array') ?
-            data[attribute.id].replace('[', '').replace(']', '').split(',').map(element => element && element.split('"').join('').split('\\').join('').trim()).filter(element => element).map(element => attribute.type.includes('number') ? Number(element) : element)
-            :
-            data[attribute.id];
-    });
+    const data = mergeData(_data, attributes);
 
     const primary_key = attributes.find(attribute => attribute.primary_key);
 
