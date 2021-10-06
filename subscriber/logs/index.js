@@ -29,6 +29,7 @@ const logStream = new stream.PassThrough();
 
 let app_message;
 let keygen;
+let sign;
 
 logStream.on('data', async chunk => {
   const data = chunk.toString('utf8').replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').trim();
@@ -136,15 +137,30 @@ logStream.on('data', async chunk => {
       },
       {
         id: 'result',
-        hard_value: false,
+        hard_value: true,
       },
     ];
 
     console.log('EVENT: attempted to start signing');
 
-    await saving(mergeData(data, attributes), 'sign_attempts', true, 1);
+    sign = mergeData(data, attributes);
+
+    if (sign && sign.non_participants) {
+      sign.non_participants = sign.non_participants.filter(address => address).map(address => {
+        const pattern_start = 'operator_address: ';
+        const pattern_end = 'consensus_pubkey:';
+        const from = pattern_start ? address.indexOf(pattern_start) + pattern_start.length : 0;
+        const to = typeof pattern_end === 'string' && address.indexOf(pattern_end) > -1 ? address.indexOf(pattern_end) : address.length;
+
+        address = address.substring(from, to).trim();
+
+        return address;
+      });
+    }
+
+    await saving(sign, 'sign_attempts', true, 1);
   }
-  else if (data.includes('signature for ') && data.includes(' verified: ')) {
+  else if (sign && sign.sig_id && data.includes('error starting signing:')) {
     const attributes = [
       {
         id: 'timestamp',
@@ -155,18 +171,24 @@ logStream.on('data', async chunk => {
       {
         id: 'sig_id',
         primary_key: true,
-        pattern_start: 'signature for ',
-        pattern_end: ' verified: ',
+        hard_value: sign.sig_id,
+      },
+      {
+        id: 'reason',
+        pattern_start: 'error starting signing: ',
+        pattern_end: ' module=',
       },
       {
         id: 'result',
-        hard_value: true,
+        hard_value: false,
       },
     ];
 
-    console.log('EVENT: signature verified');
+    sign = null;
 
-    await indexing(data, attributes, 'sign_attempts', true, 3);
+    console.log('EVENT: error starting signing');
+
+    await saving(mergeData(data, attributes), 'sign_attempts', true, 2);
   }
   else if (data.includes('keygen for key ID')) {
     const attributes = [
@@ -259,7 +281,7 @@ const mergeData = (_data, attributes, initialData) => {
               Number(data[attribute.id])
               :
               attribute.type && attribute.type.startsWith('array') ?
-                data[attribute.id].replace('[', '').replace(']', '').split(',').map(element => element && element.split('"').join('').split('\\').join('').trim()).filter(element => element).map(element => attribute.type.includes('number') ? Number(element) : element)
+                data[attribute.id].replace('[', '').replace(']', '').split(',').map(element => element && element.split('"').join('').split('\\n').join('').split('\\').join('').trim()).filter(element => element).map(element => attribute.type.includes('number') ? Number(element) : element)
                 :
                 attribute.type === 'json' ?
                   JSON.parse(data[attribute.id])
