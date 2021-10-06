@@ -94,7 +94,7 @@ logStream.on('data', async chunk => {
 
     console.log('EVENT: scheduling signing');
 
-    await indexing(data, attributes, 'sign_attempts', true);
+    await indexing(data, attributes, 'sign_attempts', true, 0);
   }
   else if (data.includes('Attempted to start signing sigID')) {
     const attributes = [
@@ -142,7 +142,7 @@ logStream.on('data', async chunk => {
 
     console.log('EVENT: attempted to start signing');
 
-    await saving(mergeData(data, attributes), 'sign_attempts', true);
+    await saving(mergeData(data, attributes), 'sign_attempts', true, 1);
   }
   else if (data.includes('signature for ') && data.includes(' verified: ')) {
     const attributes = [
@@ -166,7 +166,7 @@ logStream.on('data', async chunk => {
 
     console.log('EVENT: signature verified');
 
-    await indexing(data, attributes, 'sign_attempts', true, 5);
+    await indexing(data, attributes, 'sign_attempts', true, 3);
   }
   else if (data.includes('keygen for key ID')) {
     const attributes = [
@@ -277,7 +277,7 @@ const mergeData = (_data, attributes, initialData) => {
   return data;
 };
 
-const saving = async (data, index, update) => {
+const saving = async (data, index, update, delaySecs) => {
   if (data && data.id && index) {
     if (typeof data.snapshot === 'number') {
       let res = await requester.get('', { params: { api_name: 'executor', path: '/', cmd: `axelard q snapshot info ${data.snapshot}` } })
@@ -324,7 +324,7 @@ const saving = async (data, index, update) => {
     }
 
     if (update) {
-      await sleep(2 * 1000);
+      await sleep((typeof delaySecs === 'number' ? delaySecs : 2) * 1000);
     }
 
     console.log(`INDEXING: ${data.id} to /${index}`);
@@ -344,7 +344,7 @@ const indexing = async (_data, attributes, index, update, delaySecs) => {
 
     if (index && primary_key && data[primary_key.id]) {
       if (update) {
-        await sleep((delaySecs || 2) * 1000);
+        await sleep((typeof delaySecs === 'number' ? delaySecs : 2) * 1000);
       }
 
       console.log(`INDEXING ${primary_key.id}: ${data[primary_key.id]}${data.participants ? ` /(${data.participants.length})` : ''}${data.non_participants ? ` X(${data.non_participants.length})` : ''} to /${index}`);
