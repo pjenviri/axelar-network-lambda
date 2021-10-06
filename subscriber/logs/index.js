@@ -94,7 +94,7 @@ logStream.on('data', async chunk => {
 
     console.log('EVENT: scheduling signing');
 
-    await indexing(data, attributes, 'sign_attempts');
+    await indexing(data, attributes, 'sign_attempts', true);
   }
   else if (data.includes('Attempted to start signing sigID')) {
     const attributes = [
