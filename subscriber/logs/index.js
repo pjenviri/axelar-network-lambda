@@ -490,7 +490,7 @@ const indexing = async (_data, attributes, index, update, delaySecs) => {
 };
 
 const connect = () => {
-  container.logs({ follow: true, stdout: true, stderr: true, since: moment().subtract(1, 'days').unix() }, (err, stream) => {
+  container.logs({ follow: true, stdout: true, stderr: true/*, since: moment().subtract(1, 'days').unix()*/ }, (err, stream) => {
     if (err) return;
 
     container.modem.demuxStream(stream, logStream, logStream);
