@@ -28,7 +28,7 @@ const container = new Docker().getContainer('axelar-core');
 const logStream = new stream.PassThrough();
 
 let app_message;
-let keygen;
+const keygens = {};
 let sign;
 
 logStream.on('data', async chunk => {
@@ -213,14 +213,67 @@ logStream.on('data', async chunk => {
 
     console.log('EVENT: keygen for key ID');
 
-    keygen = mergeData(data, attributes, {});
-  }
-  else if (keygen && keygen.key_id && keygen.height) {
-    if (data.includes('processing') && data.includes(` keygens at height ${keygen.height} `)) {
-      keygen.processing = true;
+    const keygen = mergeData(data, attributes, {});
+
+    if (keygen && keygen.key_id && keygen.height) {
+      keygens[`${keygen.key_id}_${keygen.height}`] = keygen;
     }
-    else if (keygen.processing && data.includes('linking available operations to snapshot #')) {
+  }
+  else if (keygens) {
+    if (data.includes('processing')) {
+      let latest_processing;
+
+      for (let i = 0; i < Object.entries(keygens).length; i++) {
+        const entry = Object.entries(keygens)[i];
+        const key = entry[0];
+        const value = entry[1];
+
+        if (data.includes(` keygens at height ${value.height} `)) {
+          keygens[key] = { ...keygens[key], processing: true };
+
+          latest_processing = key;
+
+          break;
+        }
+      }
+
+      if (latest_processing) {
+        const attributes = [
+          {
+            id: 'timestamp',
+            pattern_start: '',
+            pattern_end: ' ',
+            type: 'date',
+          },
+        ];
+
+        const keygen = mergeData(data, attributes);
+
+        for (let i = 0; i < Object.entries(keygens).length; i++) {
+          const entry = Object.entries(keygens)[i];
+          const key = entry[0];
+          let value = entry[1];
+
+          if (value) {
+            value.latest_processing = key === latest_processing;
+
+            if (value.latest_processing && keygen && keygen.timestamp) {
+              value = { ...value, ...keygen };
+            }
+          }
+
+          keygens[key] = value;
+        }
+      }
+    }
+    else if (data.includes('linking available operations to snapshot #')) {
       const attributes = [
+        {
+          id: 'timestamp',
+          pattern_start: '',
+          pattern_end: ' ',
+          type: 'date',
+        },
         {
           id: 'snapshot',
           pattern_start: 'snapshot #',
@@ -229,7 +282,19 @@ logStream.on('data', async chunk => {
         },
       ];
 
-      keygen = mergeData(data, attributes, keygen);
+      const keygen = mergeData(data, attributes);
+
+      for (let i = 0; i < Object.entries(keygens).length; i++) {
+        const entry = Object.entries(keygens)[i];
+        const key = entry[0];
+        let value = entry[1];
+
+        if (value && value.latest_processing && keygen && keygen.timestamp === value.timestamp) {
+          value = { ...value, ...keygen };
+        }
+
+        keygens[key] = value;
+      }
     }
     else if (data.includes('error starting keygen:')) {
       const attributes = [
@@ -246,15 +311,60 @@ logStream.on('data', async chunk => {
         },
       ];
 
-      keygen = mergeData(data, attributes, keygen);
+      const keygen = mergeData(data, attributes);
 
-      keygen.id = `${keygen.key_id}_${keygen.height}`;
+      for (let i = 0; i < Object.entries(keygens).length; i++) {
+        const entry = Object.entries(keygens)[i];
+        const key = entry[0];
+        const value = entry[1];
 
-      console.log('EVENT: error starting keygen');
+        if (value && value.latest_processing && keygen && keygen.timestamp === value.timestamp) {
+          keygens[key] = { ...value, ...keygen, id: `${value.key_id}_${value.height}` };
 
-      await saving(keygen, 'failed_keygens');
+          console.log('EVENT: error starting keygen');
 
-      keygen = {};
+          await saving(keygens[key], 'failed_keygens');
+
+          delete keygens[key];
+
+          break;
+        }
+      }
+    }
+    else if (data.includes('new Keygen: key_id')) {
+      const attributes = [
+        {
+          id: 'timestamp',
+          pattern_start: '',
+          pattern_end: ' ',
+          type: 'date',
+        },
+        {
+          id: 'key_id',
+          pattern_start: 'new Keygen: key_id [',
+          pattern_end: '] threshold',
+        },
+      ];
+
+      const keygen = mergeData(data, attributes);
+
+      for (let i = 0; i < Object.entries(keygens).length; i++) {
+        const entry = Object.entries(keygens)[i];
+        const key = entry[0];
+        const value = entry[1];
+
+        if (value && value.latest_processing && keygen && keygen.key_id === value.key_id) {
+          keygens[key] = { ...value, ...keygen, id: `${value.key_id}_${value.height}` };
+
+          console.log('EVENT: new keygen');
+
+          await saving(keygens[key], 'success_keygens');
+
+          delete keygens[key];
+
+          break;
+        }
+      }
     }
   }
 });
@@ -331,19 +441,19 @@ const saving = async (data, index, update, delaySecs) => {
       }
     }
 
-    if ((data.participants && data.participants.length > 0) && !(data.non_participants && data.non_participants.length > 0)) {
-      const res = await requester.get('', { params: { api_name: 'executor', path: '/', cmd: `axelard q staking validators -oj` } })
-        .catch(error => { return { data: { error } }; });
+    // if ((data.participants && data.participants.length > 0) && !(data.non_participants && data.non_participants.length > 0)) {
+    //   const res = await requester.get('', { params: { api_name: 'executor', path: '/', cmd: `axelard q staking validators -oj` } })
+    //     .catch(error => { return { data: { error } }; });
 
-      if (res && res.data && res.data.data && res.data.data.stdout) {
-        try {
-          let validators = JSON.parse(res.data.data.stdout).validators;
-          validators = validators.filter(validator => data.participants.findIndex(_validator => _validator === validator.operator_address) < 0).map(validator => validator.operator_address);
+    //   if (res && res.data && res.data.data && res.data.data.stdout) {
+    //     try {
+    //       let validators = JSON.parse(res.data.data.stdout).validators;
+    //       validators = validators.filter(validator => data.participants.findIndex(_validator => _validator === validator.operator_address) < 0).map(validator => validator.operator_address);
 
-          data.non_participants = validators;
-        } catch (error) {}
-      }
-    }
+    //       data.non_participants = validators;
+    //     } catch (error) {}
+    //   }
+    // }
 
     if (update) {
       await sleep((typeof delaySecs === 'number' ? delaySecs : 2) * 1000);
