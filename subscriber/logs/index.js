@@ -188,7 +188,7 @@ logStream.on('data', async chunk => {
 
     console.log('EVENT: error starting signing');
 
-    await saving(mergeData(data, attributes), 'sign_attempts', true, 2);
+    await saving(mergeData(data, attributes), 'sign_attempts', true, 3);
   }
   else if (data.includes('keygen for key ID')) {
     const attributes = [
