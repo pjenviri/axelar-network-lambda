@@ -5,4 +5,4 @@ echo ${CORE_VERSION}
 
 cd ~/axelarate-community
 
-join/joinTestnet.sh --axelar-core ${CORE_VERSION}
+join/join-testnet.sh --axelar-core ${CORE_VERSION}
